@@ -1,2 +1,0 @@
-class BlurringService:
-    pass
