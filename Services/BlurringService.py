@@ -1,22 +1,33 @@
 import cv2
 import numpy as np
+from pathlib import Path
+
+
+_MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
+_FACE_CASCADE = cv2.CascadeClassifier(str(_MODELS_DIR / "haarcascade_frontalface_default.xml"))
+_PLATE_CASCADE = cv2.CascadeClassifier(str(_MODELS_DIR / "haarcascade_russian_plate_number.xml"))
+
+
+def _validate_classifiers():
+    if _FACE_CASCADE.empty() or _PLATE_CASCADE.empty():
+        raise RuntimeError(f"Unable to load cascade files from {_MODELS_DIR}")
 
 
 def blur_image(image_input):
+    _validate_classifiers()
+
     # Converti l'input binario in un array numpy
     nparr = np.frombuffer(image_input, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    # Carica i classificatori preaddestrati per il riconoscimento di volti e targhe
-    face_cascade = cv2.CascadeClassifier('/app/models/haarcascade_frontalface_default.xml')
-    plate_cascade = cv2.CascadeClassifier('/app/models/haarcascade_russian_plate_number.xml')
+    if image is None:
+        raise ValueError("Unable to decode image from input bytes")
 
     # Converti l'immagine in scala di grigi per il rilevamento
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Rilevamento di volti e targhe
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
-    plates = plate_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+    faces = _FACE_CASCADE.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+    plates = _PLATE_CASCADE.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
 
     # Applica sfocatura gaussiana ai volti rilevati
     for (x, y, w, h) in faces:
